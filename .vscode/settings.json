@@ -1,0 +1,5 @@
+{
+    "particle.targetDevice": "cali-kona",
+    "particle.firmwareVersion": "1.4.4",
+    "particle.targetPlatform": "photon"
+}
