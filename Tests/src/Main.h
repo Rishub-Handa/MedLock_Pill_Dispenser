@@ -10,6 +10,8 @@
 
 enum mode_id { user_mode, setup_mode, admin_mode }; 
 
+extern u_int64_t current_time; 
+
 // FUNCTION DEFINITIONS: 
 void reset_standby_timer(); 
 

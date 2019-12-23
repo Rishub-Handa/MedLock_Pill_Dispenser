@@ -29,7 +29,7 @@ extern Input btn3;
 extern Input collar_btn;
 extern Input twist_btn;
 extern Input btns[];
-extern const int INPUT_COUNT;
+extern const int INPUT_COUNT; 
 
 
 
@@ -38,15 +38,20 @@ extern const int INPUT_COUNT;
 void check_btns(Input btns[], int size, int mode); 
 int special_functions(); 
 void check_dispense(); 
+void check_infrared_pulses(); 
 
 void handle_user_event(Input btn); 
 void handle_setup_event(Input btn); 
 
 void flash_color(int r, int g, int b, int flash_count); 
+void flash_error(int r, int g, int b, int flash_count); 
 void display_color(int r, int g, int b); 
+void data_transmission_lights(int stage); 
 
-int setup_flash_on(); 
-int setup_flash_off(); 
+void wakeup_lights(); 
+
+int pq_flash_on(); 
+int pq_flash_off(); 
 
 void clear_color(); 
 void display_num(int num); 

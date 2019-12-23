@@ -72,15 +72,20 @@ void send_code(int code[], int length) {
 
 void send_data(String json_data) { 
 
-    if(!WiFi.ready()) {
-        if(!connectToInternet()) {
-            Serial.println("Connection Attempt Failure. "); 
-            return; 
-        } else {
-            Serial.println("Connection Attempt Success. "); 
+    for(int i = 0; i < 3; i++) {
+        if(!WiFi.ready()) {
+            if(!connectToInternet()) {
+                Serial.println("Connection Attempt Failure. "); 
+                if(i == 2) {
+                    flash_error(0, 0, 20, 5); 
+                }
+                // return; 
+            } else {
+                Serial.println("Connection Attempt Success. "); 
+                data_transmission_lights(2); 
+            }
         }
     }
-
 
     String json_string = json_data; 
     if(json_string.length() == 0) {
@@ -89,13 +94,13 @@ void send_data(String json_data) {
     
     Serial.println(json_string); 
 
-    if (client.connect("42fd5e96.ngrok.io", 80)) {         
+    if (client.connect("458689b2.ngrok.io", 80)) {         
         Serial.println("connected");
         
         // Learn how to send a correct POST request. 
         
         client.println("POST /api/dispense HTTP/1.1");
-        client.println("Host: 42fd5e96.ngrok.io");
+        client.println("Host: 458689b2.ngrok.io");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
         client.println(strlen(json_string));
@@ -104,10 +109,18 @@ void send_data(String json_data) {
         client.println();
 
         // Develop break 
-        
+
+        int wait_count = 0; 
+
         while(!client.available()) {
             Serial.println("Waiting. "); 
+            wait_count++; 
             delay(500); 
+            if(wait_count > 20) {
+                Serial.println("Server Connection Failed. "); 
+                flash_error(26, 14, 0, 5); 
+                return; 
+            }
         }
 
         Serial.print("Reading Bytes Available: "); 
@@ -117,10 +130,22 @@ void send_data(String json_data) {
         int server_res_counter = 0; 
 
         while(client.available()) {
+            // Serial.print("Reading: "); 
             char c = client.read();
+            // Serial.println(c); 
             server_res[server_res_counter] = c; 
             server_res_counter++; 
+            if(server_res_counter > 511) {
+                if(String(server_res).indexOf("502 Bad Gateway ") != -1) {
+                    Serial.println("Server Connection Failed. 502 Bad Gateway. "); 
+                    flash_error(26, 14, 0, 5); 
+                    return; 
+                }
+                break; 
+            }
         }
+
+        data_transmission_lights(3); 
 
         handle_server_res(String(server_res)); 
 
@@ -129,6 +154,8 @@ void send_data(String json_data) {
     else
     {
         Serial.println("connection failed");
+        flash_error(26, 14, 0, 5); 
+
     }
 
 } 
@@ -141,7 +168,7 @@ void handle_server_res(String res) {
     // Write handler for server response: success and failure case 
 
     if(res.indexOf("200 OK") != -1) {
-        flash_color(25, 19, 20, 10); 
+        // flash_color(25, 19, 20, 10); 
         int dispenser_index; 
         int date_index; 
         if((dispenser_index = res.indexOf("Dispenser ID: ")) != -1) {
@@ -172,11 +199,16 @@ void handle_server_res(String res) {
             Serial.print("Get Date: "); 
             print_uint64_t(get_date); 
             Serial.println(); 
+            current_time = get_date; 
 
         }
+        if(res.indexOf("Wrong Code") != -1) {
+            flash_error(26, 11, 18, 5); 
+        }
+        data_transmission_lights(4); 
         clear_usage_EEPROM(); 
     } else {
-        flash_color(20, 0, 0, 10); 
+        flash_error(26, 14, 0, 5); 
     }
 
 
@@ -209,7 +241,9 @@ void store_data(int id, unsigned long value) {
         EEPROM.put(curr_address, encoded_value); 
         curr_address += 4; 
         EEPROM.put(0, curr_address); 
-    } 
+    } else if(curr_address >= EEPROM_LENGTH - 4) {
+        flash_error(14, 4, 23, 5); 
+    }
 
     print_events(); 
 }
@@ -264,7 +298,8 @@ void print_events() {
 
 u_int32_t encoded(unsigned long value, int code) { 
     long mask = ~0u << 4; 
-    value &= mask;
+    value = value << 4; 
+    value &= mask; 
     value |= code; 
     
     return (u_int32_t)value; 	
@@ -348,7 +383,7 @@ String format_json() {
                 res += " { \"name\": "; 
                 res += " \"" + decode_name(value) + "\", "; 
                 res += " \"value\": "; 
-                res += "" + String(value) + " }"; 
+                res += "" + String(value >> 4) + " }"; 
                 
                 if(i < curr_address - 4) {
                     res += ","; 
@@ -384,6 +419,7 @@ void clear_EEPROM() {
     EEPROM.put(26, curr_time); 
     Serial.println("EEPROM cleared. "); 
     code_counter = 0; 
+    flash_color(14, 4, 23, 5); 
     check_mode(); 
 } 
 
@@ -397,10 +433,12 @@ void clear_usage_EEPROM() {
     EEPROM.put(0, 34ul); 
     EEPROM.put(2, get_id); 
     EEPROM.put(26, curr_time); 
-
-    flash_color(25, 12, 8, 10); 
-
     code_counter = 0; 
+
+    // flash_color(25, 12, 8, 10); 
+
+    data_transmission_lights(5); 
+
     check_mode(); 
 
 }

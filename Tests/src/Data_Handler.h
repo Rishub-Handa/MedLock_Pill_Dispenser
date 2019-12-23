@@ -25,5 +25,8 @@ void clear_SRAM();
 void test_storage(long value); 
 void print_events(); 
 
+void print_uint64_t(uint64_t num); 
+String uint64_t_to_String(uint64_t num); 
+
 
 #endif 
