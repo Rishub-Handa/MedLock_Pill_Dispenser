@@ -70,7 +70,6 @@ void setUpInternet() {
 bool connectToInternet() {
     data_transmission_lights(1); 
     WiFi.connect(); 
-    // while(WiFi.connecting()) delay(500); 
 
     return WiFi.ready(); 
 

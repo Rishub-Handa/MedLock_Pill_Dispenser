@@ -31,9 +31,7 @@ extern Input twist_btn;
 extern Input btns[];
 extern const int INPUT_COUNT; 
 
-
-
-
+extern bool credentials_correct; 
 
 void check_btns(Input btns[], int size, int mode); 
 int special_functions(); 
@@ -48,7 +46,10 @@ void flash_error(int r, int g, int b, int flash_count);
 void display_color(int r, int g, int b); 
 void data_transmission_lights(int stage); 
 
+void listen_isr(); 
+
 void wakeup_lights(); 
+void listen_mode_lights(); 
 
 int pq_flash_on(); 
 int pq_flash_off(); 

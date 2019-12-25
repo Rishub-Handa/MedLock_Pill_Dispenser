@@ -27,9 +27,7 @@ void check_async() {
     }
 
     for(int i = 0; i < PQ_EVENT_COUNT; i++) {
-        // Serial.print(pq_events[i].pq_event_id); Serial.println(pq_events[i].queued); 
         if(pq_events[i].queued && !timers[pq_on_id].activated && !timers[pq_off_id].activated) {
-            Serial.println("Activate Timer. "); 
             timers[pq_on_id].start = millis(); 
             timers[pq_on_id].activated = true; 
         }

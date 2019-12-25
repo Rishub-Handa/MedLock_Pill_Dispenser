@@ -7,16 +7,6 @@
 enum timer_ids { standby_timer_id, pq_on_id, pq_off_id }; 
 enum pq_event_ids { pq_collar_id, pq_battery_id, pq_setup_id, pq_charger_id }; 
 
-// Callback Timers 
-// struct CB_Timer {
-//     long start; 
-//     int delay; 
-//     int (*callback)(); 
-//     // bool activated; 
-//     // int priority; 
-//     // int timer_id; 
-// }; 
-
 struct CB_Timer {
     long start; 
     int delay; 
@@ -49,12 +39,6 @@ extern PQ_Event pq_charger;
 extern PQ_Event pq_events[]; 
 extern const int PQ_EVENT_COUNT; 
 
-// void check_async(CB_Timer async_timers[], int count); 
 void check_async(); 
-
-
-
-
-
 
 #endif

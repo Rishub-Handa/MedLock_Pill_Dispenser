@@ -23,12 +23,6 @@ void handle_server_res(String res);
 void print_uint64_t(uint64_t num); 
 String uint64_t_to_String(uint64_t num); 
 
-
-
-
-
-
-
 void store_code(int btn_id) {
 
     if(code_counter < CODE_LENGTH) {
@@ -36,10 +30,8 @@ void store_code(int btn_id) {
         code_counter++; 
     } 
     
-    // Press any button to try sending code again 
     if(code_counter >= CODE_LENGTH) { 
-        // TODO: 
-        // Try Sending Code 
+        
         send_code(code, CODE_LENGTH); 
 
         Serial.println("Send code. "); 
@@ -81,7 +73,6 @@ void send_data(String json_data) {
                 }
                 // return; 
             } else {
-                Serial.println("Connection Attempt Success. "); 
                 data_transmission_lights(2); 
             }
         }
@@ -94,13 +85,11 @@ void send_data(String json_data) {
     
     Serial.println(json_string); 
 
-    if (client.connect("458689b2.ngrok.io", 80)) {         
+    if (client.connect("59acd903.ngrok.io", 80)) {         
         Serial.println("connected");
-        
-        // Learn how to send a correct POST request. 
-        
+                
         client.println("POST /api/dispense HTTP/1.1");
-        client.println("Host: 458689b2.ngrok.io");
+        client.println("Host: 59acd903.ngrok.io");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
         client.println(strlen(json_string));
@@ -108,10 +97,7 @@ void send_data(String json_data) {
         client.println(json_string);
         client.println();
 
-        // Develop break 
-
         int wait_count = 0; 
-
         while(!client.available()) {
             Serial.println("Waiting. "); 
             wait_count++; 
@@ -130,9 +116,7 @@ void send_data(String json_data) {
         int server_res_counter = 0; 
 
         while(client.available()) {
-            // Serial.print("Reading: "); 
             char c = client.read();
-            // Serial.println(c); 
             server_res[server_res_counter] = c; 
             server_res_counter++; 
             if(server_res_counter > 511) {
@@ -146,36 +130,25 @@ void send_data(String json_data) {
         }
 
         data_transmission_lights(3); 
-
         handle_server_res(String(server_res)); 
-
         client.stop();
     }
     else
     {
         Serial.println("connection failed");
         flash_error(26, 14, 0, 5); 
-
     }
-
 } 
 
 void handle_server_res(String res) {
     Serial.println(res); 
     
-    // Check 200 OK 
-    // Retrieve Current Time and DispenserId 
-    // Write handler for server response: success and failure case 
-
     if(res.indexOf("200 OK") != -1) {
-        // flash_color(25, 19, 20, 10); 
         int dispenser_index; 
         int date_index; 
         if((dispenser_index = res.indexOf("Dispenser ID: ")) != -1) {
-            // Serial.println(dispenser_index); 
             int start_index = dispenser_index + String("Dispenser ID: ").length(); 
             String id = res.substring(start_index, start_index + 24); 
-            // Serial.println(id);
 
             char id_buf[25]; 
             id.toCharArray(id_buf, 25); 
@@ -185,8 +158,8 @@ void handle_server_res(String res) {
             EEPROM.get(2, get_id); 
             Serial.print("Get ID: "); 
             Serial.println(get_id); 
-
         } 
+
         if((date_index = res.indexOf("Current Date: ")) != -1) {
             int start_index = date_index + String("Current Date: ").length(); 
             String date = res.substring(start_index, start_index + 15); 
@@ -210,10 +183,6 @@ void handle_server_res(String res) {
     } else {
         flash_error(26, 14, 0, 5); 
     }
-
-
-
-
 }
 
 void store_data(int id, unsigned long value) {
@@ -244,10 +213,8 @@ void store_data(int id, unsigned long value) {
     } else if(curr_address >= EEPROM_LENGTH - 4) {
         flash_error(14, 4, 23, 5); 
     }
-
     print_events(); 
 }
-
 
 void test_storage(long value) {
     events_encoded[events_counter] = value; 
@@ -256,13 +223,6 @@ void test_storage(long value) {
 } 
 
 void print_events() {
-    Serial.print("SRAM: [ "); 
-    for(int i = 0; i < events_counter; i++) {
-        Serial.print(events_encoded[i]); 
-        Serial.print(", "); 
-    } 
-    Serial.println("]. "); 
-
     u_int16_t curr_address; 
     EEPROM.get(0, curr_address); 
     if(curr_address != -1) {
@@ -273,12 +233,12 @@ void print_events() {
         u_int64_t curr_time; 
         EEPROM.get(26, curr_time); 
 
-        Serial.println("EEPROM: "); 
-        Serial.print("Index: "); 
-        Serial.println(curr_address); 
-        Serial.print("ID: "); 
-        Serial.println(get_id); 
-        Serial.print("Current Time: "); 
+        Serial.print("EEPROM "); 
+        Serial.print(" | Index "); 
+        Serial.print(curr_address); 
+        Serial.print(" | ID: "); 
+        Serial.print(get_id); 
+        Serial.print(" | Current Time: "); 
         print_uint64_t(curr_time); 
         Serial.println(); 
 
@@ -290,10 +250,7 @@ void print_events() {
             Serial.print(", "); 
         } 
         Serial.println("]. "); 
-
-
     }
-
 } 
 
 u_int32_t encoded(unsigned long value, int code) { 
@@ -338,10 +295,7 @@ String decode_name(unsigned long value) {
 
 }
 
-// Update Data Format 
 String format_json() {
-
-    // Create check if dispenser assigned ID and current time 
 
     u_int16_t curr_address; 
     EEPROM.get(0, curr_address); 
@@ -358,47 +312,26 @@ String format_json() {
 
     String res = "{ \"id\": \"" + id_str + "\", \"events\": [ "; 
 
-    // Check to return SRAM or EEPROM memory 
-    // if(events_counter >= (curr_address / 4) - 8) {
-        // Print SRAM: 
+    if(curr_address != -1) {
+        for(unsigned int i = 34; i < curr_address; i += 4) { 
+            u_int32_t value; 
+            EEPROM.get(i, value); 
 
-    //     for(int i = 0; i < events_counter; i++) { 
-    //         res += " { \"name\": "; 
-    //         res += " \"" + decode_name(events_encoded[i]) + "\", "; 
-    //         res += " \"value\": "; 
-    //         res += "" + String(events_encoded[i]) + " }"; 
+            res += " { \"name\": "; 
+            res += " \"" + decode_name(value) + "\", "; 
+            res += " \"value\": "; 
+            res += "" + String(value >> 4) + " }"; 
             
-    //         if(i < events_counter - 1) {
-    //             res += ","; 
-    //         }
-    //     } 
-
-    // } else {
-        // Print EEPROM: 
-        if(curr_address != -1) {
-            for(unsigned int i = 34; i < curr_address; i += 4) { 
-                u_int32_t value; 
-                EEPROM.get(i, value); 
-
-                res += " { \"name\": "; 
-                res += " \"" + decode_name(value) + "\", "; 
-                res += " \"value\": "; 
-                res += "" + String(value >> 4) + " }"; 
-                
-                if(i < curr_address - 4) {
-                    res += ","; 
-                }
-            } 
-            Serial.println("]. "); 
-        }
-    // } 
+            if(i < curr_address - 4) {
+                res += ","; 
+            }
+        } 
+        Serial.println("]. "); 
+    }
 
     u_int64_t curr_time; 
     EEPROM.get(26, curr_time); 
     String time_str = String(1); 
-    
-    // Serial.print("Time_str: "); 
-    // Serial.println(uint64_t_to_String(curr_time)); 
 
     if(curr_time != 0) time_str = uint64_t_to_String(curr_time); 
 
@@ -411,7 +344,6 @@ String format_json() {
 }
 
 void clear_EEPROM() { 
-    // Put 0 for the ID and Current Time 
     EEPROM.clear(); 
     EEPROM.put(0, 34ul); 
     EEPROM.put(2, 0); 
@@ -435,12 +367,8 @@ void clear_usage_EEPROM() {
     EEPROM.put(26, curr_time); 
     code_counter = 0; 
 
-    // flash_color(25, 12, 8, 10); 
-
     data_transmission_lights(5); 
-
     check_mode(); 
-
 }
 
 void clear_SRAM() {

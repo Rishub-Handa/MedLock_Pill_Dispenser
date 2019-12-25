@@ -28,6 +28,8 @@ const int RESOLUTION = 5;
 uint16_t pulses[100][2]; 
 uint8_t currentpulse = 0; 
 
+bool credentials_correct = false; 
+
 // Auxiliary Functions 
 void handle_dispense(); 
 int get_priority_index(); 
@@ -35,9 +37,6 @@ int get_priority_index();
 void check_if_dispense(); 
 void printpulses(); 
 
-
-// TODO: Special Functions and Admin Mode 
-// If multiple events interrupt each other, affects activated field 
 void check_btns(Input btns[], int size, int mode) {
 
     if(special_functions()) return; 
@@ -139,11 +138,6 @@ void printpulses(void) {
     }
 }
 
-
-
-
-
-
 void handle_dispense() {
     photo_out.activated = true; 
     reset_standby_timer(); 
@@ -161,8 +155,7 @@ void handle_dispense() {
     flash_color(0, 0, 20, 5); 
 
     Serial.println("Dispense. "); 
-}
-
+} 
 
 void handle_setup_event(Input btn) {
     switch(btn.event_id) {
@@ -178,13 +171,9 @@ void handle_setup_event(Input btn) {
             store_code(btn.event_id); 
             display_color(20, 0, 0);
             break; 
-        // Design Decision on what to do if collar opened 
         case col_off_id: 
-            // store_data(btn.event_id, millis()); 
-            // display_color(20, 10, 0); 
             break; 
         case cap_turn_id: 
-            // store_data(btn.event_id, millis()); 
             display_color(10, 20, 0); 
             break; 
         default: 
@@ -193,7 +182,6 @@ void handle_setup_event(Input btn) {
 }
 
 
-// Test 
 void handle_user_event(Input btn) {
 
     u_int32_t time_now = Time.now(); 
@@ -222,7 +210,6 @@ void handle_user_event(Input btn) {
             flash_color(20, 0, 0, 3); 
             break; 
         case col_off_id: 
-            // flash_color(20, 10, 0, 3); 
             break; 
         case cap_turn_id: 
             flash_color(10, 20, 0, 3); 
@@ -246,29 +233,46 @@ int special_functions() {
         return 1; 
     } 
 
+    // Timer 
+    // Early timeout due to standby timer 
+    // Should timeout after 30 seconds if not correct. Interrupt to reset. 
+    // If correct, should timeout soon. 
+    // After restarting, timeout should be 20 seconds. 
     if(digitalRead(btn1.pin) == HIGH && digitalRead(btn3.pin) == HIGH) {
-        send_data(""); 
-        delay(1000); 
-        return 1; 
+
+        int timer_count = 0; 
+
+        while(digitalRead(btn1.pin) == HIGH && digitalRead(btn3.pin) == HIGH) {
+            timer_count++; 
+            delay(500); 
+            if(timer_count > 10) break; 
+        }
+
+        if(timer_count > 10) {
+            timers[standby_timer_id].delay = 120000; 
+            credentials_correct = true; 
+            listen_mode_lights(); 
+            attachInterrupt(D6, listen_isr, RISING);  
+            // WiFi.setListenTimeout(120); 
+            WiFi.listen(); 
+            return 1; 
+        } else return 0; 
 
     }
 
     if(digitalRead(btn2.pin) == HIGH && digitalRead(btn3.pin) == HIGH) {
-        System.sleep(SLEEP_MODE_DEEP); 
+        send_data(""); 
+        delay(1000); 
         return 1; 
     } 
-
-    if(digitalRead(btn1.pin) == HIGH && digitalRead(btn2.pin) == HIGH && digitalRead(btn3.pin) == HIGH) {
-        // Setup Mode 
-    }
-
     return 0; 
+} 
+
+void listen_isr() {
+    Serial.println("Listen ISR. "); 
+    detachInterrupt(D6); 
+    System.reset(); 
 }
-
-
-
-
-
 
 void flash_color(int r, int g, int b, int flash_count) {
 
@@ -304,8 +308,6 @@ void flash_error(int r, int g, int b, int flash_count) {
 }
 
 int pq_flash_on() {
-
-    Serial.println("pq_flash_on"); 
 
     timers[pq_on_id].activated = false; 
     timers[pq_off_id].start = millis(); 
@@ -409,17 +411,21 @@ void wakeup_lights() {
     for(int i = 0; i < 4; i++) {
         strip.setPixelColor(i, 0, 0, 20); 
         strip.show(); 
-        delay(100); 
+        delay(200); 
     } 
     strip.clear(); 
     strip.show(); 
+} 
+
+void listen_mode_lights() {
+    strip.clear(); 
+    strip.show(); 
+    for(int i = 0; i < 4; i++) {
+        strip.setPixelColor(i, 20, 20, 0); 
+        strip.show(); 
+        delay(100); 
+    } 
 }
-
-
-
-
-
-
 
 
 void display_color(int r, int g, int b) {

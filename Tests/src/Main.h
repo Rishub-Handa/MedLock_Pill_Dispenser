@@ -19,9 +19,7 @@ void reset_standby_timer();
 int test_funcptr(int num); 
 void check_mode(); 
 int put_to_sleep(); 
-int setup_flash_on(); 
-int setup_flash_off(); 
-
-
+// int setup_flash_on(); 
+// int setup_flash_off(); 
 
 #endif
