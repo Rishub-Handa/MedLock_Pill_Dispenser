@@ -23,6 +23,8 @@ extern int inr_emit;
 extern int photo_vcc;
 extern Input photo_out;
 
+extern int charge_reading; 
+
 extern Input btn1;
 extern Input btn2;
 extern Input btn3;
@@ -35,11 +37,12 @@ extern bool credentials_correct;
 
 void check_btns(Input btns[], int size, int mode); 
 int special_functions(); 
-void check_dispense(); 
+int check_dispense(); 
 void check_infrared_pulses(); 
 
 void handle_user_event(Input btn); 
 void handle_setup_event(Input btn); 
+void handle_dispense(); 
 
 void flash_color(int r, int g, int b, int flash_count); 
 void flash_error(int r, int g, int b, int flash_count); 

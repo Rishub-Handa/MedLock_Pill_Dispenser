@@ -4,11 +4,13 @@
 #include "Data_Handler.h"
 #include "neopixel/neopixel.h"
 
-Input charger = { charger_id, D0, "Charger", false, 0 }; 
+Input charger = { charger_id, A2, "Charger", false, 0 }; 
 
 int inr_emit = DAC;
 int photo_vcc = A5;
 Input photo_out = { dispense_id, A0, "Dispensed", false, 0 }; 
+
+int charge_reading = A1; 
 
 Input btn1 = { btn1_id, D5, "Button 1", false, 0 }; 
 Input btn2 = { btn2_id, D6, "Button 2", false, 0 }; 
@@ -31,7 +33,6 @@ uint8_t currentpulse = 0;
 bool credentials_correct = false; 
 
 // Auxiliary Functions 
-void handle_dispense(); 
 int get_priority_index(); 
 // Unsafe function 
 void check_if_dispense(); 
@@ -41,20 +42,31 @@ void check_btns(Input btns[], int size, int mode) {
 
     if(special_functions()) return; 
 
+    // Measure the Threshold 
+    // if(analogRead(charge_reading) < 200) {
+    //     pq_events[pq_battery_id].queued = true; 
+    // } else {
+    //     pq_events[pq_battery_id].queued = false; 
+    // }
+
     for(int i = 0; i < size; i++) {
         if(digitalRead(btns[i].pin) == HIGH && !btns[i].activated){ 
             btns[i].activated = true; 
             reset_standby_timer(); 
 
+            // Particle.publish("Charge Reading", String(analogRead(charge_reading)), PRIVATE);
+
             if(mode == setup_mode) {
                 handle_setup_event(btns[i]); 
-            } 
+            } else if(mode == user_mode && btns[i].event_id == col_off_id) {
+                handle_user_event(btns[i]); 
+            }
 
-            if(btns[i].event_id == charger_id && mode == user_mode) {
-                Serial.println("Charger Activated"); 
-                send_data(""); 
-                pq_events[pq_charger_id].queued = true; 
-            } 
+            // if(btns[i].event_id == charger_id && mode == user_mode) {
+            //     Serial.println("Charger Activated"); 
+            //     send_data(""); 
+            //     pq_events[pq_charger_id].queued = true; 
+            // } 
 
             if(btns[i].event_id == col_off_id) {
                 pq_events[pq_collar_id].queued = true; 
@@ -69,7 +81,7 @@ void check_btns(Input btns[], int size, int mode) {
             btns[i].activated = false; 
             reset_standby_timer(); 
 
-            if(mode == user_mode) {
+            if(mode == user_mode && btns[i].event_id != col_off_id) {
                 handle_user_event(btns[i]); 
             } else if(mode == setup_mode) {
                 clear_color(); 
@@ -79,23 +91,27 @@ void check_btns(Input btns[], int size, int mode) {
                 pq_events[pq_collar_id].queued = false; 
             } 
 
-            if(btns[i].event_id == charger_id) {
-                pq_events[pq_charger_id].queued = false; 
-            }
+            // if(btns[i].event_id == charger_id) {
+            //     pq_events[pq_charger_id].queued = false; 
+            // }
 
             Serial.print(btns[i].name);  Serial.println(" Released. "); 
         }
     }
 } 
 
-void check_dispense() {
-    if(analogRead(photo_out.pin) < 20 && !photo_out.activated) { 
+int check_dispense() {
+    if(analogRead(photo_out.pin) < 1800 && !photo_out.activated) { 
         handle_dispense(); 
+        return 1; 
     } 
 
-    if(analogRead(photo_out.pin) >= 20 && photo_out.activated) {
+    if(analogRead(photo_out.pin) >= 1800 && photo_out.activated) {
         photo_out.activated = false; 
+        return 2; 
     }
+
+    return 0; 
 }
 
 void check_infrared_pulses() {
@@ -139,6 +155,7 @@ void printpulses(void) {
 }
 
 void handle_dispense() {
+    Serial.println("Handling Dispense. "); 
     photo_out.activated = true; 
     reset_standby_timer(); 
 
@@ -174,7 +191,7 @@ void handle_setup_event(Input btn) {
         case col_off_id: 
             break; 
         case cap_turn_id: 
-            display_color(10, 20, 0); 
+            // display_color(10, 20, 0); 
             break; 
         default: 
             break; 
@@ -212,7 +229,7 @@ void handle_user_event(Input btn) {
         case col_off_id: 
             break; 
         case cap_turn_id: 
-            flash_color(10, 20, 0, 3); 
+            // flash_color(10, 20, 0, 3); 
             break; 
         default: 
             break; 
@@ -252,7 +269,7 @@ int special_functions() {
             timers[standby_timer_id].delay = 120000; 
             credentials_correct = true; 
             listen_mode_lights(); 
-            attachInterrupt(D6, listen_isr, RISING);  
+            attachInterrupt(btn2.pin, listen_isr, RISING);  
             // WiFi.setListenTimeout(120); 
             WiFi.listen(); 
             return 1; 
@@ -270,7 +287,7 @@ int special_functions() {
 
 void listen_isr() {
     Serial.println("Listen ISR. "); 
-    detachInterrupt(D6); 
+    detachInterrupt(btn2.pin); 
     System.reset(); 
 }
 
@@ -282,11 +299,13 @@ void flash_color(int r, int g, int b, int flash_count) {
             strip.setPixelColor(j, r, g, b); 
         strip.show();
         
-        long curr_time = millis(); 
-        while(millis() < curr_time + 250) { }
+        // long curr_time = millis(); 
+        // while(millis() < curr_time + 250) { }
+        delayMicroseconds(250000); 
         strip.clear(); strip.show();
-        curr_time = millis(); 
-        while(millis() < curr_time + 250) { }
+        // curr_time = millis(); 
+        // while(millis() < curr_time + 250) { }
+        delayMicroseconds(250000); 
     }
 
 }  
@@ -339,7 +358,16 @@ int pq_flash_on() {
         }
     }
 
-    for(int i = 0; i < 4; i++) 
+    // Change number of LEDs to 1 for Low Battery Indicator 
+
+    int num_LEDs = 4; 
+
+    // Test 
+    // if(priority_index == 1) {
+    //     num_LEDs = 2; 
+    // }
+
+    for(int i = 0; i < num_LEDs; i++) 
         strip.setPixelColor(i, r, g, b); 
 
     strip.show();
@@ -369,12 +397,18 @@ int pq_flash_off() {
         for(int j = 0; j < INPUT_COUNT; j++) {
             if(btns[j].activated == true) {
                 return 0; 
+            }
         }
-    }
     } 
 
 
     strip.clear(); 
+
+    // Test 
+    // if(priority_index == 1) {
+    //     strip.setPixelColor(0, 20, 0, 0); 
+    // }
+
     strip.show(); 
 
 

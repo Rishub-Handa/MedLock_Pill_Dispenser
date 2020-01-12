@@ -4,6 +4,7 @@
 #include "Peripherals.h" 
 #include "Particle.h" 
 #include "string.h" 
+#include "Async_Handler.h"
 
 const int EVENTS_LIMIT = 300; 
 retained u_int32_t events_encoded[EVENTS_LIMIT]; 
@@ -64,11 +65,19 @@ void send_code(int code[], int length) {
 
 void send_data(String json_data) { 
 
-    for(int i = 0; i < 3; i++) {
+    int CONNECTION_TRIES = 1; 
+    
+    // If charging, CONNECTION_TRIES = 3; 
+    if(pq_events[pq_charger_id].queued) {
+        CONNECTION_TRIES = 3; 
+    }
+
+
+    for(int i = 0; i < CONNECTION_TRIES; i++) {
         if(!WiFi.ready()) {
             if(!connectToInternet()) {
                 Serial.println("Connection Attempt Failure. "); 
-                if(i == 2) {
+                if(i == CONNECTION_TRIES - 1) {
                     flash_error(0, 0, 20, 5); 
                 }
                 // return; 
@@ -85,11 +94,11 @@ void send_data(String json_data) {
     
     Serial.println(json_string); 
 
-    if (client.connect("59acd903.ngrok.io", 80)) {         
+    if (client.connect("c671b433.ngrok.io", 80)) {         
         Serial.println("connected");
                 
         client.println("POST /api/dispense HTTP/1.1");
-        client.println("Host: 59acd903.ngrok.io");
+        client.println("Host: c671b433.ngrok.io");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
         client.println(strlen(json_string));
@@ -146,6 +155,7 @@ void handle_server_res(String res) {
     if(res.indexOf("200 OK") != -1) {
         int dispenser_index; 
         int date_index; 
+        Particle.publish("Charge Reading", String(analogRead(charge_reading)), PRIVATE); 
         if((dispenser_index = res.indexOf("Dispenser ID: ")) != -1) {
             int start_index = dispenser_index + String("Dispenser ID: ").length(); 
             String id = res.substring(start_index, start_index + 24); 
@@ -162,10 +172,15 @@ void handle_server_res(String res) {
 
         if((date_index = res.indexOf("Current Date: ")) != -1) {
             int start_index = date_index + String("Current Date: ").length(); 
-            String date = res.substring(start_index, start_index + 15); 
+
+            // Check Date Range 
+            String date = res.substring(start_index, start_index + 13); 
 
             u_int64_t date_ms = atoll(date); 
             EEPROM.put(26, date_ms); 
+
+            u_int32_t date_sec = (u_int32_t)(date_ms / 1000); 
+            Time.setTime(date_sec); 
 
             u_int64_t get_date; 
             EEPROM.get(26, get_date); 
@@ -252,6 +267,22 @@ void print_events() {
         Serial.println("]. "); 
     }
 } 
+
+bool has_dispense_data() {
+
+    u_int16_t curr_address; 
+    EEPROM.get(0, curr_address); 
+
+    if(curr_address >= 34) {
+        for(unsigned int i = 34; i < curr_address; i += 4) { 
+            u_int32_t value; 
+            EEPROM.get(i, value); 
+            if(decode_name(value).equals(String("Dispense"))) return true; 
+        } 
+    }
+
+    return false; 
+}
 
 u_int32_t encoded(unsigned long value, int code) { 
     long mask = ~0u << 4; 

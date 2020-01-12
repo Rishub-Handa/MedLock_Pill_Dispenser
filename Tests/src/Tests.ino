@@ -10,6 +10,7 @@
 
 int curr_mode = user_mode; 
 u_int64_t current_time; 
+int queued_dispenses = 0; 
 
 // DATA STORAGE 
 
@@ -21,6 +22,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // FUNCTION DEFINITIONS: 
 void set_pins(); 
+void dispense_isr(); 
 
 void setup() {
     set_pins(); 
@@ -37,6 +39,8 @@ void setup() {
 
     check_mode(); 
 
+    attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
+
     strip.begin(); 
     strip.clear(); 
     strip.show();
@@ -46,13 +50,17 @@ void setup() {
 
 } 
 
-void loop() { 
+void loop() {    
+    
+    if(digitalRead(A3) == HIGH) {
+        Serial.println("High. "); 
+    }
 
     if(credentials_correct) {
         credentials_correct = false; 
         if(WiFi.ready())  {
             flash_color(0, 20, 0, 5); 
-            detachInterrupt(D6); 
+            detachInterrupt(btn2.pin); 
             System.reset(); 
         } else {
             flash_color(20, 0, 0, 5);
@@ -60,14 +68,23 @@ void loop() {
         timers[standby_timer_id].activated = true; 
     }
 
-    // Tested
+    // Tested 
 
     check_btns(btns, 5, curr_mode); 
 
     if(curr_mode == user_mode) {
         
-        check_dispense(); 
-        // check_infrared_pulses(); 
+        // Include Here ? 
+        if(queued_dispenses == 0) {
+            check_dispense(); 
+        } else { 
+            while(queued_dispenses > 0) {
+                handle_dispense(); 
+                queued_dispenses -= 1; 
+                Serial.print("Queued Dispenses Left: "); Serial.println(queued_dispenses); 
+            } 
+        }
+            
 
     } else if(curr_mode == setup_mode) {
         // Check Other Functions 
@@ -104,9 +121,27 @@ void check_mode() {
 
 int put_to_sleep() { 
 
+    if(digitalRead(collar_btn.pin)) {
+        timers[standby_timer_id].start = millis(); 
+        timers[standby_timer_id].activated = true;  
+        return 2; 
+    }
+
     if(!WiFi.connecting() && !digitalRead(collar_btn.pin)) {
         strip.clear(); 
         strip.show(); 
+
+
+        // If in user mode 
+        if(has_dispense_data() && curr_mode == user_mode) send_data(""); 
+
+        while(queued_dispenses > 0) {
+            handle_dispense(); 
+            queued_dispenses -= 1; 
+            Serial.print("Queued Dispenses Left: "); Serial.println(queued_dispenses); 
+        } 
+
+        // Particle.publish(String(analogRead(charge_reading))); 
 
         System.sleep(SLEEP_MODE_DEEP); 
         return 1; 
@@ -114,8 +149,29 @@ int put_to_sleep() {
     }
 
     return 0; 
-
+    
 }
+
+void dispense_isr() {
+    detachInterrupt(twist_btn.pin); 
+    Serial.println("Dispense ISR Begin. "); 
+
+    if(curr_mode == user_mode) {
+        for(int i = 0; i < 150; i++) {
+            Serial.println("ISR Loop. "); 
+            if(analogRead(photo_out.pin) < 1800 && !photo_out.activated) { 
+                queued_dispenses++; 
+                Serial.print("Queued Dispenses: "); Serial.println(queued_dispenses); 
+                break; 
+            } 
+            delayMicroseconds(20000); 
+        }
+    }
+
+    Serial.println("Dispense ISR End. "); 
+
+    attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
+} 
 
 void reset_standby_timer() {
     timers[standby_timer_id].start = millis(); 
@@ -136,7 +192,10 @@ void set_pins() {
     pinMode(btn3.pin, INPUT); 
 
     pinMode(collar_btn.pin, INPUT); 
-    pinMode(twist_btn.pin, INPUT); 
+    pinMode(twist_btn.pin, INPUT_PULLUP); 
+    // pinMode(A3, INPUT_PULLUP); 
+
+    pinMode(charge_reading, INPUT); 
 
 }
 

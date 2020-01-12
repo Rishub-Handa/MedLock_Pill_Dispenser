@@ -15,6 +15,8 @@ void send_code(int code[], int length);
 void store_data(int id, unsigned long value); 
 void store_code(int button_id); 
 
+bool has_dispense_data(); 
+
 extern TCPClient client; 
 
 // Should Not Be in Header File During Deployment Phase 
