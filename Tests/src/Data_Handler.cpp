@@ -94,11 +94,11 @@ void send_data(String json_data) {
     
     Serial.println(json_string); 
 
-    if (client.connect("c671b433.ngrok.io", 80)) {         
+    if (client.connect("99fc0e19.ngrok.io", 80)) {         
         Serial.println("connected");
                 
         client.println("POST /api/dispense HTTP/1.1");
-        client.println("Host: c671b433.ngrok.io");
+        client.println("Host: 99fc0e19.ngrok.io");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
         client.println(strlen(json_string));

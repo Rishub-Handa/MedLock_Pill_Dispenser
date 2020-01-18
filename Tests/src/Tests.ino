@@ -11,6 +11,7 @@
 int curr_mode = user_mode; 
 u_int64_t current_time; 
 int queued_dispenses = 0; 
+bool has_twist_interrupt = false; 
 
 // DATA STORAGE 
 
@@ -56,6 +57,7 @@ void loop() {
         Serial.println("High. "); 
     }
 
+    // Improve 
     if(credentials_correct) {
         credentials_correct = false; 
         if(WiFi.ready())  {
@@ -73,7 +75,10 @@ void loop() {
     check_btns(btns, 5, curr_mode); 
 
     if(curr_mode == user_mode) {
-        
+        if(!has_twist_interrupt) { 
+            attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
+            has_twist_interrupt = true; 
+        }
         // Include Here ? 
         if(queued_dispenses == 0) {
             check_dispense(); 
@@ -88,6 +93,10 @@ void loop() {
 
     } else if(curr_mode == setup_mode) {
         // Check Other Functions 
+        if(has_twist_interrupt) {
+            detachInterrupt(twist_btn.pin); 
+            has_twist_interrupt = false; 
+        }
     }
 
     check_async(); 

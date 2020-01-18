@@ -1,5 +1,5 @@
 {
-    "particle.targetDevice": "night_shift",
+    "particle.targetDevice": "boomer_penguin",
     "particle.firmwareVersion": "1.4.4",
     "particle.targetPlatform": "photon"
 }

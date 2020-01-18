@@ -278,10 +278,23 @@ int special_functions() {
     }
 
     if(digitalRead(btn2.pin) == HIGH && digitalRead(btn3.pin) == HIGH) {
-        send_data(""); 
-        delay(1000); 
-        return 1; 
-    } 
+
+        int timer_count = 0; 
+
+        while(digitalRead(btn2.pin) == HIGH && digitalRead(btn3.pin) == HIGH) {
+            timer_count++; 
+            delay(500); 
+            if(timer_count > 10) break; 
+        }
+
+        if(timer_count > 10) {
+            timers[standby_timer_id].delay = 120000; 
+            flash_color(0, 0, 20, 2); 
+            Particle.connect(); 
+            return 1; 
+        } else return 0; 
+
+    }
     return 0; 
 } 
 
