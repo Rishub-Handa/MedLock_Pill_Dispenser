@@ -4,7 +4,7 @@
 #include "Data_Handler.h"
 #include "neopixel/neopixel.h"
 
-Input charger = { charger_id, A2, "Charger", false, 0 }; 
+Input charger = { charger_id, D0, "Charger", false, 0 }; 
 
 int inr_emit = DAC;
 int photo_vcc = A5;
@@ -42,6 +42,18 @@ void check_btns(Input btns[], int size, int mode) {
 
     if(special_functions()) return; 
 
+    // Charger logic flipped. 1 when not charging, 0 when charging. 
+    if(!digitalRead(charger.pin) && !charger.activated) {
+        flash_color(25, 16, 0, 3); 
+        charger.activated = true; 
+    } 
+
+    if(digitalRead(charger.pin) && charger.activated) {
+        charger.activated = false; 
+    } 
+
+
+
     // Measure the Threshold 
     // if(analogRead(charge_reading) < 200) {
     //     pq_events[pq_battery_id].queued = true; 
@@ -70,6 +82,7 @@ void check_btns(Input btns[], int size, int mode) {
 
             if(btns[i].event_id == col_off_id) {
                 pq_events[pq_collar_id].queued = true; 
+                reset_standby_timer(); 
             }
 
 
@@ -463,6 +476,24 @@ void wakeup_lights() {
     strip.clear(); 
     strip.show(); 
 } 
+
+void low_battery_lights() {
+    strip.clear(); 
+    strip.show(); 
+
+    for(int i = 0; i < 3; i++) {
+        strip.setPixelColor(3, 20, 0, 0); 
+        strip.setPixelColor(2, 20, 0, 0); 
+        strip.show(); 
+        delay(250); 
+        strip.clear(); 
+        strip.setPixelColor(3, 20, 0, 0); 
+        strip.show(); 
+        delay(250); 
+    }
+
+}
+
 
 void listen_mode_lights() {
     strip.clear(); 

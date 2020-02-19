@@ -94,11 +94,11 @@ void send_data(String json_data) {
     
     Serial.println(json_string); 
 
-    if (client.connect("99fc0e19.ngrok.io", 80)) {         
+    if (client.connect("aqueous-falls-74814.herokuapp.com", 80)) {         
         Serial.println("connected");
                 
         client.println("POST /api/dispense HTTP/1.1");
-        client.println("Host: 99fc0e19.ngrok.io");
+        client.println("Host: aqueous-falls-74814.herokuapp.com");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
         client.println(strlen(json_string));
@@ -191,7 +191,7 @@ void handle_server_res(String res) {
 
         }
         if(res.indexOf("Wrong Code") != -1) {
-            flash_error(26, 11, 18, 5); 
+            flash_error(20, 20, 0, 5); 
         }
         data_transmission_lights(4); 
         clear_usage_EEPROM(); 
@@ -387,6 +387,9 @@ void clear_EEPROM() {
 } 
 
 void clear_usage_EEPROM() {
+
+    Serial.println("Clear Usage EEPROM begin"); 
+
     char get_id[24]; 
     EEPROM.get(2, get_id); 
     u_int64_t curr_time; 
@@ -397,6 +400,10 @@ void clear_usage_EEPROM() {
     EEPROM.put(2, get_id); 
     EEPROM.put(26, curr_time); 
     code_counter = 0; 
+
+    Serial.println("Clear Usage EEPROM end"); 
+    print_events(); 
+
 
     data_transmission_lights(5); 
     check_mode(); 

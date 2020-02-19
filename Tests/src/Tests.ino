@@ -13,6 +13,8 @@ u_int64_t current_time;
 int queued_dispenses = 0; 
 bool has_twist_interrupt = false; 
 
+int battery_level = A1; 
+
 // DATA STORAGE 
 
 STARTUP(System.enableFeature(FEATURE_RETAINED_MEMORY)); 
@@ -45,7 +47,12 @@ void setup() {
     strip.begin(); 
     strip.clear(); 
     strip.show();
-    wakeup_lights(); 
+
+    if(analogRead(battery_level) < 1500) {
+        low_battery_lights(); 
+    } else {
+        wakeup_lights(); 
+    }
 
     Serial.println("Setup. "); 
 
@@ -130,13 +137,14 @@ void check_mode() {
 
 int put_to_sleep() { 
 
-    if(digitalRead(collar_btn.pin)) {
-        timers[standby_timer_id].start = millis(); 
-        timers[standby_timer_id].activated = true;  
-        return 2; 
-    }
+    // if(digitalRead(collar_btn.pin)) {
+    //     timers[standby_timer_id].start = millis(); 
+    //     timers[standby_timer_id].activated = true;  
+    //     return 2; 
+    // }
 
-    if(!WiFi.connecting() && !digitalRead(collar_btn.pin)) {
+    // if(!WiFi.connecting() && !digitalRead(collar_btn.pin)) {
+    if(!WiFi.connecting()) {    
         strip.clear(); 
         strip.show(); 
 
@@ -165,6 +173,10 @@ void dispense_isr() {
     detachInterrupt(twist_btn.pin); 
     Serial.println("Dispense ISR Begin. "); 
 
+    for(int j = 0; j < 4; j++) 
+            strip.setPixelColor(j, 0, 0, 20); 
+        strip.show();
+
     if(curr_mode == user_mode) {
         for(int i = 0; i < 150; i++) {
             Serial.println("ISR Loop. "); 
@@ -179,6 +191,9 @@ void dispense_isr() {
 
     Serial.println("Dispense ISR End. "); 
 
+    strip.clear(); 
+    strip.show(); 
+
     attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
 } 
 
@@ -191,6 +206,7 @@ void reset_standby_timer() {
 void set_pins() {
 
     pinMode(charger.pin, INPUT); 
+    pinMode(battery_level, INPUT); 
 
     pinMode(inr_emit, OUTPUT); 
     pinMode(photo_vcc, OUTPUT); 

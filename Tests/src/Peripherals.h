@@ -53,6 +53,7 @@ void listen_isr();
 
 void wakeup_lights(); 
 void listen_mode_lights(); 
+void low_battery_lights(); 
 
 int pq_flash_on(); 
 int pq_flash_off(); 
