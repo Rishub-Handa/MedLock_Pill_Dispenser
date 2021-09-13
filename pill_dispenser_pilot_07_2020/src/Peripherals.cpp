@@ -43,14 +43,14 @@ void check_btns(Input btns[], int size, int mode) {
     if(special_functions()) return; 
 
     // Charger logic flipped. 1 when not charging, 0 when charging. 
-    if(!digitalRead(charger.pin) && !charger.activated) {
-        flash_color(25, 16, 0, 3); 
-        charger.activated = true; 
-    } 
+    // if(!digitalRead(charger.pin) && !charger.activated) {
+    //     flash_color(25, 16, 0, 3); 
+    //     charger.activated = true; 
+    // } 
 
-    if(digitalRead(charger.pin) && charger.activated) {
-        charger.activated = false; 
-    } 
+    // if(digitalRead(charger.pin) && charger.activated) {
+    //     charger.activated = false; 
+    // } 
 
 
 
@@ -256,10 +256,26 @@ int special_functions() {
     // Should not record these events in storage 
 
     if(digitalRead(btn1.pin) == HIGH && digitalRead(btn2.pin) == HIGH) {
+        
         btn1.activated = false; 
         btn2.activated = false; 
-        clear_EEPROM(); 
-        clear_SRAM(); 
+
+         int timer_count = 0; 
+
+        while(digitalRead(btn2.pin) == HIGH && digitalRead(btn3.pin) == HIGH) {
+            timer_count++; 
+            delay(500); 
+            if(timer_count > 10) break; 
+        }
+
+        if(timer_count > 10) {
+            timers[standby_timer_id].delay = 30000; 
+            clear_EEPROM(); 
+            clear_SRAM(); 
+            return 1; 
+        } else return 0; 
+
+
         return 1; 
     } 
 

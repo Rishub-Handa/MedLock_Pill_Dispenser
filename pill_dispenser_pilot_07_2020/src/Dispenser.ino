@@ -42,7 +42,7 @@ void setup() {
 
     check_mode(); 
 
-    attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
+    // attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
 
     strip.begin(); 
     strip.clear(); 
@@ -60,6 +60,10 @@ void setup() {
 
 void loop() {    
     
+    // Demo Check Dispense 
+
+    check_dispense(); 
+
     if(digitalRead(A3) == HIGH) {
         Serial.println("High. "); 
     }
@@ -83,7 +87,7 @@ void loop() {
 
     if(curr_mode == user_mode) {
         if(!has_twist_interrupt) { 
-            attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
+            // attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
             has_twist_interrupt = true; 
         }
         // Include Here ? 
@@ -194,7 +198,7 @@ void dispense_isr() {
     strip.clear(); 
     strip.show(); 
 
-    attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
+    // attachInterrupt(twist_btn.pin, dispense_isr, RISING); 
 } 
 
 void reset_standby_timer() {

@@ -94,11 +94,11 @@ void send_data(String json_data) {
     
     Serial.println(json_string); 
 
-    if (client.connect("aqueous-falls-74814.herokuapp.com", 80)) {         
+    if (client.connect("f00fd8b3.ngrok.io", 80)) {         
         Serial.println("connected");
                 
         client.println("POST /api/dispense HTTP/1.1");
-        client.println("Host: aqueous-falls-74814.herokuapp.com");
+        client.println("Host: f00fd8b3.ngrok.io");
         client.println("Content-Type: application/json");
         client.print("Content-Length: ");
         client.println(strlen(json_string));
